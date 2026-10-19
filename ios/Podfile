@@ -1,4 +1,6 @@
-platform :ios, '13.0'
+# Flutter 3.47 起官方最低支持 iOS 15（14 及更早不再支持），
+# Flutter 引擎自带的 Flutter.podspec 也要求 15.0，写低了 pod install 会直接报错。
+platform :ios, '15.0'
 
 # CocoaPods 统计上报，关掉免得拖慢 CI
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -46,8 +48,8 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
-      # 插件的最低版本可能高于 13.0，统一抬到 13.0 避免告警变错误
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      # 插件的最低版本可能高于 15.0，统一抬到 15.0 避免告警变错误
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
     end
   end
 end
