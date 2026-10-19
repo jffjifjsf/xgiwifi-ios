@@ -1,0 +1,69 @@
+name: Build unsigned iOS IPA
+
+# 目的：在没有 Mac 的情况下，用 GitHub 的 macOS runner 编出未签名 ipa，
+# 再用 Sideloadly / AltStore 在 Windows 上侧载到 iPhone / iPad。
+#
+# 用法：推到 GitHub 仓库后，在 Actions 页面手动 Run workflow，
+# 跑完在 Artifacts 里下载 xgiwifi-unsigned-ipa。
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'ios/**'
+      - 'pubspec.yaml'
+      - '.github/workflows/ios-unsigned.yml'
+
+jobs:
+  build-ipa:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Show toolchain
+        run: |
+          flutter --version
+          xcodebuild -version
+          pod --version
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install --repo-update
+
+      - name: Build (no codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Package Payload
+        run: |
+          set -euo pipefail
+          APP_PATH="build/ios/iphoneos/Runner.app"
+          test -d "$APP_PATH" || { echo "Runner.app 不存在，构建失败"; exit 1; }
+          rm -rf Payload xGiWifi-unsigned.ipa
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -qry xGiWifi-unsigned.ipa Payload
+          ls -lh xGiWifi-unsigned.ipa
+          echo "### 产物大小" >> "$GITHUB_STEP_SUMMARY"
+          du -h xGiWifi-unsigned.ipa >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: xgiwifi-unsigned-ipa
+          path: xGiWifi-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
