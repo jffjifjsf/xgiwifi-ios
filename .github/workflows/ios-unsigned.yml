@@ -49,16 +49,52 @@ jobs:
           set -o pipefail
           flutter pub get 2>&1 | tee /tmp/01-pubget.log
 
+      # Flutter 引擎自带的 Flutter.podspec 会要求一个最低 iOS 版本，
+      # 版本号随 Flutter 升级而变（3.47 已高于 13.0）。
+      # 这里直接读 podspec 里的真实值，同步到 Podfile / 工程 / plist，
+      # 避免以后 Flutter 升版本又因为部署目标报错。
+      - name: Align iOS deployment target
+        run: |
+          set -euo pipefail
+          flutter precache --ios 2>&1 | tee /tmp/02-precache.log
+          FR="$(cd "$(dirname "$(command -v flutter)")/.." && pwd)"
+          SPEC="$(find "$FR/bin/cache" -name 'Flutter.podspec' -print -quit || true)"
+          echo "Flutter.podspec = $SPEC"
+          [ -n "$SPEC" ] || { echo "找不到 Flutter.podspec"; exit 1; }
+          MIN="$(grep -oE "platform[[:space:]]*=[[:space:]]*:ios,[[:space:]]*'[0-9.]+'" "$SPEC" \
+                 | grep -oE "[0-9]+\.[0-9]+" | head -1 || true)"
+          echo "Flutter 要求的最低 iOS 版本 = ${MIN:-未知}"
+          [ -n "$MIN" ] || { echo "未能从 podspec 解析最低版本"; sed -n '1,40p' "$SPEC"; exit 1; }
+          echo "IOS_MIN=$MIN" >> "$GITHUB_ENV"
+
+          # Podfile：platform 行 + post_install 里的统一常量
+          sed -i '' -E "s/^platform :ios, '[0-9.]+'/platform :ios, '$MIN'/" ios/Podfile
+          sed -i '' -E "s/(\['IPHONEOS_DEPLOYMENT_TARGET'\] = ')[0-9.]+'/\1$MIN'/" ios/Podfile
+
+          # Xcode 工程（Debug/Release/Profile 三份配置）
+          sed -i '' -E "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = $MIN;/g" \
+            ios/Runner.xcodeproj/project.pbxproj
+
+          # Flutter 框架最低版本
+          /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion $MIN" ios/Flutter/AppFrameworkInfo.plist \
+            || /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string $MIN" ios/Flutter/AppFrameworkInfo.plist
+
+          echo "--- 对齐结果 ---"
+          grep -n "platform :ios" ios/Podfile
+          grep -n "IPHONEOS_DEPLOYMENT_TARGET" ios/Podfile || true
+          grep -o "IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*" ios/Runner.xcodeproj/project.pbxproj | sort -u
+          /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" ios/Flutter/AppFrameworkInfo.plist
+
       - name: Install CocoaPods
         working-directory: ios
         run: |
           set -o pipefail
-          pod install 2>&1 | tee /tmp/02-pod.log | tail -40
+          pod install 2>&1 | tee /tmp/03-pod.log | tail -40
 
       - name: Build (no codesign)
         run: |
           set -o pipefail
-          flutter build ios --release --no-codesign 2>&1 | tee /tmp/03-build.log | tail -60
+          flutter build ios --release --no-codesign 2>&1 | tee /tmp/04-build.log | tail -60
 
       - name: Package Payload
         run: |
