@@ -55,35 +55,52 @@ jobs:
       # 避免以后 Flutter 升版本又因为部署目标报错。
       - name: Align iOS deployment target
         run: |
-          set -euo pipefail
-          flutter precache --ios 2>&1 | tee /tmp/02-precache.log
-          FR="$(cd "$(dirname "$(command -v flutter)")/.." && pwd)"
-          SPEC="$(find "$FR/bin/cache" -name 'Flutter.podspec' -print -quit || true)"
-          echo "Flutter.podspec = $SPEC"
-          [ -n "$SPEC" ] || { echo "找不到 Flutter.podspec"; exit 1; }
-          MIN="$(grep -oE "platform[[:space:]]*=[[:space:]]*:ios,[[:space:]]*'[0-9.]+'" "$SPEC" \
-                 | grep -oE "[0-9]+\.[0-9]+" | head -1 || true)"
-          echo "Flutter 要求的最低 iOS 版本 = ${MIN:-未知}"
-          [ -n "$MIN" ] || { echo "未能从 podspec 解析最低版本"; sed -n '1,40p' "$SPEC"; exit 1; }
-          echo "IOS_MIN=$MIN" >> "$GITHUB_ENV"
+          set -o pipefail
+          {
+            set -uo pipefail
+            flutter precache --ios
+            FR="$(cd "$(dirname "$(command -v flutter)")/.." && pwd)"
+            echo "FLUTTER_ROOT=$FR"
 
-          # Podfile：platform 行 + post_install 里的统一常量
-          sed -i '' -E "s/^platform :ios, '[0-9.]+'/platform :ios, '$MIN'/" ios/Podfile
-          sed -i '' -E "s/(\['IPHONEOS_DEPLOYMENT_TARGET'\] = ')[0-9.]+'/\1$MIN'/" ios/Podfile
+            SPEC="$(find "$FR/bin/cache" -name 'Flutter.podspec' -print -quit 2>/dev/null)"
+            if [ -z "$SPEC" ]; then
+              SPEC="$(find "$FR" -name 'Flutter.podspec' -print -quit 2>/dev/null)"
+            fi
+            echo "Flutter.podspec=$SPEC"
 
-          # Xcode 工程（Debug/Release/Profile 三份配置）
-          sed -i '' -E "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = $MIN;/g" \
-            ios/Runner.xcodeproj/project.pbxproj
+            MIN=""
+            if [ -n "$SPEC" ] && [ -f "$SPEC" ]; then
+              echo "--- podspec 头部 ---"
+              sed -n '1,60p' "$SPEC"
+              echo "--- 提取 platform ---"
+              MIN="$(grep -E "platform" "$SPEC" | grep -oE ":ios,[[:space:]]*['\"][0-9.]+['\"]" \
+                     | grep -oE "[0-9]+\.[0-9]+" | head -1)"
+            fi
+            if [ -z "$MIN" ]; then
+              MIN="15.0"
+              echo "!! 没能从 podspec 解析出最低版本，回退到 $MIN 继续尝试"
+            fi
+            echo "IOS_MIN=$MIN"
+            echo "IOS_MIN=$MIN" >> "$GITHUB_ENV"
 
-          # Flutter 框架最低版本
-          /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion $MIN" ios/Flutter/AppFrameworkInfo.plist \
-            || /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string $MIN" ios/Flutter/AppFrameworkInfo.plist
+            # Podfile：platform 行 + post_install 里的统一常量
+            sed -i '' -E "s/^platform :ios, '[0-9.]+'/platform :ios, '$MIN'/" ios/Podfile
+            sed -i '' -E "s/(\['IPHONEOS_DEPLOYMENT_TARGET'\] = ')[0-9.]+'/\1$MIN'/" ios/Podfile
 
-          echo "--- 对齐结果 ---"
-          grep -n "platform :ios" ios/Podfile
-          grep -n "IPHONEOS_DEPLOYMENT_TARGET" ios/Podfile || true
-          grep -o "IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*" ios/Runner.xcodeproj/project.pbxproj | sort -u
-          /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" ios/Flutter/AppFrameworkInfo.plist
+            # Xcode 工程（Debug/Release/Profile 三份配置）
+            sed -i '' -E "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]+;/IPHONEOS_DEPLOYMENT_TARGET = $MIN;/g" \
+              ios/Runner.xcodeproj/project.pbxproj
+
+            # Flutter 框架最低版本
+            /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion $MIN" ios/Flutter/AppFrameworkInfo.plist \
+              || /usr/libexec/PlistBuddy -c "Add :MinimumOSVersion string $MIN" ios/Flutter/AppFrameworkInfo.plist
+
+            echo "--- 对齐结果 ---"
+            grep -n "platform :ios" ios/Podfile
+            grep -n "IPHONEOS_DEPLOYMENT_TARGET" ios/Podfile || true
+            grep -o "IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*" ios/Runner.xcodeproj/project.pbxproj | sort -u
+            /usr/libexec/PlistBuddy -c "Print :MinimumOSVersion" ios/Flutter/AppFrameworkInfo.plist
+          } 2>&1 | tee /tmp/02-align.log
 
       - name: Install CocoaPods
         working-directory: ios
