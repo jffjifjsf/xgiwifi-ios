@@ -5,6 +5,8 @@ name: Build unsigned iOS IPA
 #
 # 用法：推到 GitHub 仓库后，在 Actions 页面手动 Run workflow，
 # 跑完在 Artifacts 里下载 xgiwifi-unsigned-ipa。
+#
+# 失败时会把完整日志推到 ci-logs 分支，方便在没有图形界面时排查。
 
 on:
   workflow_dispatch:
@@ -16,10 +18,13 @@ on:
       - 'pubspec.yaml'
       - '.github/workflows/ios-unsigned.yml'
 
+permissions:
+  contents: write
+
 jobs:
   build-ipa:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
@@ -33,19 +38,27 @@ jobs:
 
       - name: Show toolchain
         run: |
-          flutter --version
-          xcodebuild -version
-          pod --version
+          set -o pipefail
+          flutter --version 2>&1 | tee /tmp/00-toolchain.log
+          xcodebuild -version 2>&1 | tee -a /tmp/00-toolchain.log
+          pod --version 2>&1 | tee -a /tmp/00-toolchain.log
+          sw_vers 2>&1 | tee -a /tmp/00-toolchain.log
 
       - name: Resolve dependencies
-        run: flutter pub get
+        run: |
+          set -o pipefail
+          flutter pub get 2>&1 | tee /tmp/01-pubget.log
 
       - name: Install CocoaPods
         working-directory: ios
-        run: pod install --repo-update
+        run: |
+          set -o pipefail
+          pod install 2>&1 | tee /tmp/02-pod.log | tail -40
 
       - name: Build (no codesign)
-        run: flutter build ios --release --no-codesign
+        run: |
+          set -o pipefail
+          flutter build ios --release --no-codesign 2>&1 | tee /tmp/03-build.log | tail -60
 
       - name: Package Payload
         run: |
@@ -67,3 +80,20 @@ jobs:
           path: xGiWifi-unsigned.ipa
           if-no-files-found: error
           retention-days: 14
+
+      # 失败时把日志推到 ci-logs 分支，便于在没有登录会话的情况下读取真实报错
+      - name: Publish failure logs
+        if: failure()
+        run: |
+          set -x
+          mkdir -p ci-logs
+          cp /tmp/*.log ci-logs/ 2>/dev/null || true
+          flutter doctor -v > ci-logs/09-doctor.log 2>&1 || true
+          echo "run_id=$GITHUB_RUN_ID" > ci-logs/meta.txt
+          echo "sha=$GITHUB_SHA" >> ci-logs/meta.txt
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git checkout -B ci-logs
+          git add -A -f ci-logs
+          git commit -m "ci: failure log for run $GITHUB_RUN_ID" || true
+          git push -f origin ci-logs

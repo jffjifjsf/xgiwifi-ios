@@ -32,8 +32,9 @@ require File.expand_path(
 flutter_ios_podfile_setup
 
 target 'Runner' do
+  # 与 Flutter 官方模板一致：只用 use_frameworks!，
+  # 叠加 use_modular_headers! 容易和插件里的资源 bundle 冲突
   use_frameworks!
-  use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
