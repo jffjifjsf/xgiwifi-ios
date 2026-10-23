@@ -134,6 +134,21 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      # Actions 的 artifact 下载必须登录。发一份到 Release，
+      # 得到一个匿名可用的固定链接，7 天续签时直接取，不用找 run。
+      - name: Publish to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ipa-latest
+          name: 最新未签名 IPA
+          body: |
+            由 GitHub Actions 自动构建的未签名 ipa，用爱思助手 / Sideloadly 侧载。
+            每次推送 main 自动覆盖更新。
+
+            commit: ${{ github.sha }}
+          files: xGiWifi-unsigned.ipa
+          fail_on_unmatched_files: true
+
       # 失败时把日志推到 ci-logs 分支，便于在没有登录会话的情况下读取真实报错
       - name: Publish failure logs
         if: failure()
