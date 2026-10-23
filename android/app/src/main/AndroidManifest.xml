@@ -36,6 +36,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- 关闭 Impeller，改用 Skia 渲染。
+             新版 Flutter 默认走 Impeller，在部分较老的 Mali/Adreno GPU 上会白屏。 -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
     </application>
 
     <queries>

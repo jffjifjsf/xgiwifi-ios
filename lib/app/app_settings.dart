@@ -157,12 +157,22 @@ class AppSettingsStore {
   }
 
   DeviceProfile _profileFromStorage(String? value) {
-    return switch (value) {
-      'android' || 'iphone' => DeviceProfile.android,
-      'apad' || 'ipad' => DeviceProfile.apad,
-      'windows' => DeviceProfile.windows,
-      _ => _defaultProfileForPlatform,
-    };
+    final normalized = value?.trim() ?? '';
+    switch (normalized) {
+      case 'android' || 'iphone':
+        return DeviceProfile.android;
+      case 'apad' || 'ipad':
+        return DeviceProfile.apad;
+      case 'windows':
+        return DeviceProfile.windows;
+    }
+    // 新增的机型以枚举名持久化，这里按名字回查，避免升级后回落到默认终端。
+    for (final profile in DeviceProfile.values) {
+      if (profile.name == normalized) {
+        return profile;
+      }
+    }
+    return _defaultProfileForPlatform;
   }
 
   /// 手机 / 平板端没有「Windows 终端」这个选项，首次启动不该默认落在它上面

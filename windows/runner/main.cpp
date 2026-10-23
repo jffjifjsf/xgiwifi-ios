@@ -27,7 +27,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"xgiwifi", origin, size)) {
+  // The window title carries the build tag so it is obvious which package
+  // is currently running.
+  if (!window.Create(L"xGiWifi 1.2.0 (build 1020-2)", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

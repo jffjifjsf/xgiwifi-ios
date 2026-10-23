@@ -111,6 +111,10 @@ class AppAccountLoginRequest {
 
 const String kGiWifiApkVersion = '2.4.1.21';
 
+/// 本次自编译包的构建标记。登录日志第一行会打印它，
+/// 用来一眼区分“跑的是不是最新那个包”。
+const String kClientBuildTag = '2026-10-20-models-2';
+
 enum DeviceProfile {
   android(
     label: 'Android',
@@ -136,6 +140,94 @@ enum DeviceProfile {
     // Official APK success capture on the rooted tablet. This value is the
     // exact Build.MANUFACTURER,MODEL,SDK,RELEASE string emitted on the wire.
     staModel: 'samsung,SM-T870,34,14',
+  ),
+  padTabS9(
+    label: 'Tab S9',
+    protocol: DeviceProtocol.appPortal,
+    userAgent:
+        'Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    loginPath: '/gportal/web/login?has_reload=1&pagetype=login&logintype=1',
+    btype: '2',
+    staType: 'pad',
+    staModel: 'samsung,SM-X710,34,14',
+  ),
+  padMi6Pro(
+    label: '小米平板6 Pro',
+    protocol: DeviceProtocol.appPortal,
+    userAgent:
+        'Mozilla/5.0 (Linux; Android 13; 23046RP50C) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    loginPath: '/gportal/web/login?has_reload=1&pagetype=login&logintype=1',
+    btype: '2',
+    staType: 'pad',
+    staModel: 'Xiaomi,23046RP50C,33,13',
+  ),
+  padXiaoxinPro(
+    label: '小新Pad Pro',
+    protocol: DeviceProtocol.appPortal,
+    userAgent:
+        'Mozilla/5.0 (Linux; Android 13; TB-J716F) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    loginPath: '/gportal/web/login?has_reload=1&pagetype=login&logintype=1',
+    btype: '2',
+    staType: 'pad',
+    staModel: 'Lenovo,TB-J716F,33,13',
+  ),
+  padHonorV8Pro(
+    label: '荣耀V8 Pro',
+    protocol: DeviceProtocol.appPortal,
+    userAgent:
+        'Mozilla/5.0 (Linux; Android 13; HEY-W09) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    loginPath: '/gportal/web/login?has_reload=1&pagetype=login&logintype=1',
+    btype: '2',
+    staType: 'pad',
+    staModel: 'HONOR,HEY-W09,33,13',
+  ),
+  padOppoPad(
+    label: 'OPPO Pad',
+    protocol: DeviceProtocol.appPortal,
+    userAgent:
+        'Mozilla/5.0 (Linux; Android 13; OPD2102A) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    loginPath: '/gportal/web/login?has_reload=1&pagetype=login&logintype=1',
+    btype: '2',
+    staType: 'pad',
+    staModel: 'OPPO,OPD2102A,33,13',
+  ),
+  padPixelTablet(
+    label: 'Pixel Tablet',
+    protocol: DeviceProtocol.appPortal,
+    userAgent:
+        'Mozilla/5.0 (Linux; Android 14; Pixel Tablet) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    loginPath: '/gportal/web/login?has_reload=1&pagetype=login&logintype=1',
+    btype: '2',
+    staType: 'pad',
+    staModel: 'Google,Pixel Tablet,34,14',
+  ),
+  phoneMi14(
+    label: '小米14',
+    protocol: DeviceProtocol.appPortal,
+    userAgent:
+        'Mozilla/5.0 (Linux; Android 14; 23127PN0CC) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
+    loginPath: '/gportal/web/login?has_reload=1&pagetype=login&logintype=1',
+    btype: '1',
+    staType: 'phone',
+    staModel: 'Xiaomi,23127PN0CC,34,14',
+  ),
+  phoneMate60Pro(
+    label: 'Mate 60 Pro',
+    protocol: DeviceProtocol.appPortal,
+    userAgent:
+        'Mozilla/5.0 (Linux; Android 12; ALN-AL00) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
+    loginPath: '/gportal/web/login?has_reload=1&pagetype=login&logintype=1',
+    btype: '1',
+    staType: 'phone',
+    staModel: 'HUAWEI,ALN-AL00,31,12',
   ),
   windows(
     label: 'Windows',

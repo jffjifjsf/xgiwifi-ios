@@ -402,7 +402,8 @@ class _HomePageState extends State<HomePage> {
                     Expanded(
                       child: Text(
                         '有线网络仅支持 Windows（电脑端）认证；'
-                        'Wi-Fi 可选择 Android、APad 或 Windows 终端认证。',
+                        'Wi-Fi 可选手机、平板或 Windows 终端认证，'
+                        '型号只是对外声明的设备身份，可逐个试哪个能过。',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onPrimaryContainer,
                           height: 1.45,
@@ -470,30 +471,27 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(height: 10),
-              SegmentedButton<DeviceProfile>(
-                showSelectedIcon: false,
-                expandedInsets: EdgeInsets.zero,
-                segments: DeviceProfile.values
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: DeviceProfile.values
                     .map(
-                      (DeviceProfile profile) => ButtonSegment<DeviceProfile>(
-                        value: profile,
-                        label: Text(
-                          profile.label,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      (DeviceProfile profile) => ChoiceChip(
+                        label: Text(profile.label),
+                        selected: _selectedProfile == profile,
+                        onSelected: _isLoginBusy
+                            ? null
+                            : (bool selected) {
+                                if (!selected) {
+                                  return;
+                                }
+                                setState(() {
+                                  _selectedProfile = profile;
+                                });
+                              },
                       ),
                     )
                     .toList(),
-                selected: <DeviceProfile>{_selectedProfile},
-                onSelectionChanged: _isLoginBusy
-                    ? null
-                    : (Set<DeviceProfile> selection) {
-                        setState(() {
-                          _selectedProfile = selection.first;
-                        });
-                      },
               ),
               const SizedBox(height: 24),
               FilledButton.icon(

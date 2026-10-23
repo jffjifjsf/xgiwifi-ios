@@ -92,6 +92,7 @@ class GiWifiClient {
     String appPortalProbeUrl = _defaultAppPortalProbeUrl,
     AppAccountLoginOptions appAccountOptions = const AppAccountLoginOptions(),
   }) : _clientFactory = clientFactory ?? http.Client.new,
+       _usesDefaultBoundFactory = networkBoundClientFactory == null,
        _networkBoundClientFactory =
            networkBoundClientFactory ?? createSourceBoundHttpClient,
        _epochSeconds = epochSeconds ?? _systemEpochSeconds,
@@ -104,6 +105,7 @@ class GiWifiClient {
        _runtimeAppUuid = generateGiWifiAppUuid();
 
   final http.Client Function() _clientFactory;
+  final bool _usesDefaultBoundFactory;
   final NetworkBoundClientFactory _networkBoundClientFactory;
   final int Function() _epochSeconds;
   final Future<void> Function(Duration duration) _delay;
@@ -164,11 +166,12 @@ class GiWifiClient {
     required BindConflictHandler onBindConflict,
     LoginLogSink? onLog,
   }) async {
-    final client = _createClient(networkIdentity);
+    final client = _createClient(networkIdentity, onLog: onLog);
     final baseUri = Uri.parse(baseUrl);
 
     void logInfo(String message) => onLog?.call('[INFO] $message');
     void logWarn(String message) => onLog?.call('[WARN] $message');
+    logInfo('构建 $kClientBuildTag');
 
     try {
       logInfo('获取登录页');
@@ -309,11 +312,12 @@ class GiWifiClient {
     required BindConflictHandler onBindConflict,
     LoginLogSink? onLog,
   }) async {
-    final client = _createClient(networkIdentity);
+    final client = _createClient(networkIdentity, onLog: onLog);
     final baseUri = Uri.parse(baseUrl);
 
     void logInfo(String message) => onLog?.call('[INFO] $message');
     void logWarn(String message) => onLog?.call('[WARN] $message');
+    logInfo('构建 $kClientBuildTag');
 
     try {
       logInfo('获取 Portal 网络参数');
@@ -776,14 +780,23 @@ class GiWifiClient {
     );
   }
 
-  http.Client _createClient(AppNetworkIdentity? networkIdentity) {
+  http.Client _createClient(AppNetworkIdentity? networkIdentity, {LoginLogSink? onLog}) {
     if (networkIdentity == null) {
+      onLog?.call('[INFO] 出口方式: 不绑定源地址（自动选择网卡，由系统路由决定）');
       return _clientFactory();
     }
 
     final sourceIpv4 = networkIdentity.userIp.trim();
     if (!isUsableIpv4Address(sourceIpv4)) {
       throw const FormatException('所选网卡没有有效 IPv4 地址');
+    }
+    onLog?.call('[INFO] 出口方式: 绑定源地址 $sourceIpv4');
+    if (_usesDefaultBoundFactory) {
+      // 默认实现：绑不上源地址时自动回退到系统默认路由，并把它记进日志。
+      return createSourceBoundHttpClient(
+        sourceIpv4,
+        onWarning: (String message) => onLog?.call('[WARN] $message'),
+      );
     }
     return _networkBoundClientFactory(sourceIpv4);
   }
