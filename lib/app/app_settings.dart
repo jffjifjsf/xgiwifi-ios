@@ -5,7 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../giwifi/giwifi_models.dart';
 
-const String kDefaultBaseUrl = 'http://10.100.100.2';
+// 赣南科技学院（GKDX）的门户。旧的 10.100.100.2 已失效（2026-10-24 实测
+// 80/8080 全部超时），192.168.99.2 的 80 与 8080 都通。
+// 换校区或门户再变时，在首页点一下地址栏就能改，不用重编。
+const String kDefaultBaseUrl = 'http://192.168.99.2';
 const String kPlaceholderGithubUrl = 'https://github.com/Mhenwa/xGiWifi';
 
 class AppSettings {

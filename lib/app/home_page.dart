@@ -272,29 +272,43 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
             const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.07),
+            // 点一下就能改 Portal 地址。校园网门户各个校区/年份会变，
+            // 写死在默认值里迟早会失效，必须让用户自己改。
+            Material(
+              color: theme.colorScheme.primary.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(18),
+              child: InkWell(
                 borderRadius: BorderRadius.circular(18),
-              ),
-              child: Row(
-                children: <Widget>[
-                  Icon(
-                    Icons.dns_outlined,
-                    size: 18,
-                    color: theme.colorScheme.primary,
+                onTap: _isLoginBusy ? null : _showBaseUrlDialog,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      widget.settings.baseUrl,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.dns_outlined,
+                        size: 18,
+                        color: theme.colorScheme.primary,
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          widget.settings.baseUrl,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.edit_outlined,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ],
@@ -866,7 +880,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // ignore: unused_element
   Future<void> _showBaseUrlDialog() async {
     final controller = TextEditingController(text: widget.settings.baseUrl);
     String? errorText;
@@ -884,7 +897,8 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        '默认值为 $kDefaultBaseUrl',
+                        '校园网门户地址，默认 $kDefaultBaseUrl\n'
+                        '连不上网关时先来这里确认地址对不对。',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 12),
